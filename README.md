@@ -1,5 +1,14 @@
 ## How to start locally
 
-1. yarn install
-2. npx ampx sandbox
-3. yarn run dev
+1.
+```javascript
+yarn install
+```
+2.
+```javascript
+npx ampx sandbox
+```
+3.
+```javascript
+yarn run dev
+```
