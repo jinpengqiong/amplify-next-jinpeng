@@ -11,7 +11,6 @@ import "@aws-amplify/ui-react/styles.css";
 
 
 Amplify.configure(outputs);
-
 const client = generateClient<Schema>();
 
 export default function App() {
@@ -25,7 +24,7 @@ export default function App() {
   function listGroups(isInitial = false) {
     client.models.Group.observeQuery().subscribe({
       next: (data) => {
-        if(isInitial){
+        if(isInitial || groups.length === 0){
           setGroups([...data.items])
           setSelectedGroup(data.items[0])
         }else{
@@ -111,7 +110,9 @@ export default function App() {
           <input
             type="text"
             onChange={(e) => setInputValue(e.target.value)}
-            value={inputValue}/>
+            value={inputValue}
+            placeholder="Enter group name"
+            />
           <button onClick={joinGroup}>Join Group</button>
         </div>
         <h2>My Groups</h2>
