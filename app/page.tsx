@@ -16,42 +16,150 @@ const client = generateClient<Schema>();
 
 export default function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-  const { signOut } = useAuthenticator();
-  function listTodos() {
-    client.models.Todo.observeQuery().subscribe({
+  const [groups, setGroups] = useState<Array<Schema["Group"]["type"]>>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Schema["Group"]["type"] | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const { signOut,user } = useAuthenticator();
+
+  // Fetch all groups
+  function listGroups(isInitial = false) {
+    client.models.Group.observeQuery().subscribe({
+      next: (data) => {
+        if(isInitial){
+          setGroups([...data.items])
+          setSelectedGroup(data.items[0])
+        }else{
+          setGroups([...data.items])
+        }
+      },
+    });
+  }
+
+  // Fetch todos of the selected group
+  function listTodos(groupId: string) {
+    client.models.Todo.observeQuery({
+      filter: { groupId: { eq: groupId } },
+    }).subscribe({
       next: (data) => setTodos([...data.items]),
     });
   }
 
-  useEffect(() => {
-    listTodos();
-  }, []);
+  // Join a new group
+  function joinGroup() {
+    if (!!inputValue) {
+      client.models.Group.create({ groupName: inputValue }).then(() => {
+        listGroups();
+        setInputValue('');
+      });
+    }
+  }
 
+  // Create a todo in the selected group
   function createTodo() {
-    client.models.Todo.create({
-      content: window.prompt("Todo content"),
+    if (selectedGroup) {
+      const content = window.prompt("Todo content:");
+      if (content) {
+        client.models.Todo.create({
+          content,
+          groupId: selectedGroup.id,
+          isDone: false,
+        }).then(() => listTodos(selectedGroup.id));
+      }
+    }
+  }
+
+  // Delete a todo
+  function deleteTodo(id: string) {
+    client.models.Todo.delete({ id }).then(() => {
+      if (selectedGroup) {
+        listTodos(selectedGroup.id);
+      }
     });
   }
 
-  function deleteTodo(id: string) {
-    client.models.Todo.delete({ id })
+  // Toggle the isDone status of a todo
+  function toggleTodoStatus(id: string, currentStatus: boolean) {
+    client.models.Todo.update({
+      id,
+      isDone: !currentStatus,
+    }).then(() => {
+      if (selectedGroup) {
+        listTodos(selectedGroup.id);
+      }
+    });
   }
+
+  useEffect(() => {
+    listGroups(true);
+  }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      listTodos(selectedGroup.id);
+    }
+  }, [selectedGroup]);
+
   return (
-    <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id} onClick={() => deleteTodo(todo.id)}>{todo.content}</li>
-        ))}
-      </ul>
-      <button onClick={signOut}>Sign out</button>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/nextjs/start/quickstart/nextjs-app-router-client-components/">
-          Review next steps of this tutorial.
-        </a>
+    <main className="container">
+      <div className="leftDiv">
+        <div>
+          <h1>Signed in as {user?.signInDetails?.loginId}</h1>
+          <button onClick={signOut}>Sign out</button>
+        </div>
+        <div>
+          <h2>Join Groups</h2>
+          <input
+            type="text"
+            onChange={(e) => setInputValue(e.target.value)}
+            value={inputValue}/>
+          <button onClick={joinGroup}>Join Group</button>
+        </div>
+        <h2>My Groups</h2>
+        <ul>
+          {groups.map((group) => (
+            <li
+              key={group.id}
+              onClick={() => setSelectedGroup(group)}
+              style={{
+                cursor: "pointer",
+                fontWeight: selectedGroup?.id === group.id ? "bold" : "normal",
+                backgroundColor: selectedGroup?.id === group.id ? "rgb(204, 204, 204)" : "rgb(255, 255, 255)",
+              }}
+            >
+              {group.groupName}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rightDiv">
+        <h1>{selectedGroup ? `Todos for ${selectedGroup.groupName}` : "Select a group to view todos"}</h1>
+        {selectedGroup && (
+          <>
+            <button onClick={createTodo}>+ New</button>
+            <ul>
+              {todos.map((todo) => (
+                <li key={todo.id}>
+                  <span
+                    style={{
+                      textDecoration: todo.isDone ? "line-through" : "none",
+                      cursor: "pointer",
+                    }}
+                    // onClick={() => toggleTodoStatus(todo.id, todo.isDone)}
+                  >
+                    {todo.content}
+                  </span>
+                  <button
+                    onClick={() => deleteTodo(todo.id)}
+                    style={{ float: "right", marginRight: "10px" }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </main>
   );
