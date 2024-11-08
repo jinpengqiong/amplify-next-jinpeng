@@ -102,7 +102,7 @@ export default function App() {
     <main className="container">
       <div className="leftDiv">
         <div>
-          <h1>Signed in as {user?.signInDetails?.loginId}</h1>
+          <h2 style={{ wordBreak: "break-word" }}>Signed in as {user?.signInDetails?.loginId}</h2>
           <button onClick={signOut}>Sign out</button>
         </div>
         <div>
