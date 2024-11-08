@@ -13,7 +13,7 @@ const schema = a.schema({
       groupId: a.string().required(),
       isDone: a.boolean(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.groupDefinedIn('groupId')]),
   Group: a
     .model({
       groupName: a.string(),
